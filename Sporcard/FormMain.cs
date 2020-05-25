@@ -1231,32 +1231,57 @@ namespace Sporcard
 
             string DateSave = DateTime.Now.ToString("yyyyMMdd");
 
-            iRet = iCalSSCardCode(0, 1, 3, dtread.Rows[0]["KSBM"].ToString(), string.Format("JKEY|0000000000000000|$HSM52|{0}|{1}|{2}|$", info.printname, info.wdcode, info.printcode), strOutInfo);
+            iRet = iUpdateKey_GZ(1, "", strOutInfo);
+            if (!iRet.Equals(0))
+            {
+                LogHelper.WriteLog(typeof(FormMain), "iUpdateKey_GZ失败");
+                return iRet;
+            }
+
+            iRet = iReadCardBas_GZ(1, 3, "", strOutInfo);
+            if (!iRet.Equals(0))
+            {
+                LogHelper.WriteLog(typeof(FormMain), "iReadCardBas_GZ失败");
+                return iRet;
+            }
+
+            string ksbm = strOutInfo.ToString().Split('|')[0];
+
+            iRet = iCalSSCardCode(1, 3, ksbm, strOutInfo);
             if (!iRet.Equals(0))
             {
                 LogHelper.WriteLog(typeof(FormMain), "iCalSSCardCode失败");
                 return iRet;
             }
 
-            string ksbm = strOutInfo.ToString();
+            ksbm = strOutInfo.ToString();
+
+            //iRet = iCalSSCardCode(0, 1, 3, dtread.Rows[0]["KSBM"].ToString(), string.Format("JKEY|0000000000000000|$HSM52|{0}|{1}|{2}|$", info.printname, info.wdcode, info.printcode), strOutInfo);
+            //if (!iRet.Equals(0))
+            //{
+            //    LogHelper.WriteLog(typeof(FormMain), "iCalSSCardCode失败");
+            //    return iRet;
+            //}
 
             strOutInfo.Clear();
-            iRet = iReadBankNumExt(0, 1, strOutInfo);
+            iRet = iReadBankNum(1, strOutInfo);
             string BankCardNo = strOutInfo.ToString();
             if (!iRet.Equals(0))
             {
-                LogHelper.WriteLog(typeof(FormMain), "iReadBankNumExt失败");
+                LogHelper.WriteLog(typeof(FormMain), "iReadBankNum失败");
                 return iRet;
             }
 
             strOutInfo.Clear();
-            iRet = iGetATRExt(0, 1, strOutInfo);
+            iRet = iGetATR(1, 1, strOutInfo);
             string ATR = strOutInfo.ToString();
             if (!iRet.Equals(0))
             {
-                LogHelper.WriteLog(typeof(FormMain), "iGetATRExt失败");
+                LogHelper.WriteLog(typeof(FormMain), "iGetATR失败");
                 return iRet;
             }
+
+            #region
 
             string cardWriteInfo1 = "SSSEEF05|01|02|03|04|05|06|07|$SSSEEF06|08|09|0A|0B|0D|$DF01EF05|20|21|$DF01EF06|25|27|28|$";
 
@@ -1289,20 +1314,20 @@ namespace Sporcard
             strOutInfo.Clear();
             LogHelper.WriteLog(typeof(FormMain), "cardWriteInfo1：" + cardWriteInfo1);
             LogHelper.WriteLog(typeof(FormMain), "cardWriteInfo2：" + cardWriteInfo2);
-            iRet = iRepairCardExt(0, 1, 3, cardWriteInfo1, cardWriteInfo2, string.Format("HSM52|{0}|{1}|{2}|$CODE|520300|$", info.printname, info.wdcode, info.printcode), strOutInfo);
+            iRet = iWriteCard_GZ(1, 3, cardWriteInfo1, cardWriteInfo2, "", strOutInfo);
             if (!iRet.Equals(0))
             {
-                LogHelper.WriteLog(typeof(FormMain), "iRepairCardExt失败");
+                LogHelper.WriteLog(typeof(FormMain), "iWriteCard_GZ失败");
                 return iRet;
             }
 
             strOutInfo.Clear();
             //DF01EF05|20|21|$DF01EF06|25|27|28|$
             string strRead = "SSSEEF05|01|02|03|04|05|06|07|$SSSEEF06|08|09|0A|0B|0D|$";
-            iRet = iReadCardExt(0, 1, 3, "", strRead, string.Format("HSM52|{0}|{1}|{2}|$", info.printname, info.wdcode, info.printcode), strOutInfo);
+            iRet = iReadCard_GZ(1, 3, "", strRead, "", strOutInfo);
             if (!iRet.Equals(0))
             {
-                LogHelper.WriteLog(typeof(FormMain), "iReadCardExt失败");
+                LogHelper.WriteLog(typeof(FormMain), "iReadCard_GZ失败");
                 return iRet;
             }
 
@@ -1332,9 +1357,11 @@ namespace Sporcard
                 LogHelper.WriteLog(typeof(FormMain), "写入：" + strWrite);
 
                 LogHelper.WriteLog(typeof(FormMain), "读取：" + strOutInfo.ToString());
-               
+
                 return iRet = -1;
             }
+
+            #endregion
 
             string strsql = string.Format("UPDATE NEWPRODUCTDATA SET [KSBM]= '{0}' , [BANKCARDNO] = '{1}' , [ATR] = '{2}' , [DATESAVE] = '{3}'  WHERE [IDCARD]='{4}'", ksbm, BankCardNo, ATR, DateTime.Now.ToString("yyyy-MM-dd"), info.idcard);
             if (Accor.ExecuteNonQuery(strsql).Equals(0))
@@ -1344,6 +1371,7 @@ namespace Sporcard
 
             return iRet;
         }
+
 
         public MemoryStream ReadFile(string path)
         {
@@ -1448,20 +1476,97 @@ namespace Sporcard
 
         #region
 
-        [DllImport("TSSelfSendDev.dll", EntryPoint = "iReadCardExt", CharSet = CharSet.Ansi)]
-        public static extern int iReadCardExt(int iReaderCtrl, int iType, int iAuthType, string pPIN, string pFileAddr, string pUserInfo, StringBuilder pOutInfo);
+        //[DllImport("TSSelfSendDev.dll", EntryPoint = "iReadCardExt", CharSet = CharSet.Ansi)]
+        //public static extern int iReadCardExt(int iReaderCtrl, int iType, int iAuthType, string pPIN, string pFileAddr, string pUserInfo, StringBuilder pOutInfo);
 
-        [DllImport("TSSelfSendDev.dll", EntryPoint = "iRepairCardExt", CharSet = CharSet.Ansi)]
-        public static extern int iRepairCardExt(int iReaderCtrl, int iType, int iAuthType, string pFileAddr, string pFileInfo, string pUserInfo, StringBuilder pOutInfo);
+        //[DllImport("TSSelfSendDev.dll", EntryPoint = "iRepairCardExt", CharSet = CharSet.Ansi)]
+        //public static extern int iRepairCardExt(int iReaderCtrl, int iType, int iAuthType, string pFileAddr, string pFileInfo, string pUserInfo, StringBuilder pOutInfo);
 
-        [DllImport("TSSelfSendDev.dll", EntryPoint = "iReadBankNumExt", CharSet = CharSet.Ansi)]
-        public static extern int iReadBankNumExt(int iReaderCtrl, int iType, StringBuilder pOutInfo);
+        //[DllImport("TSSelfSendDev.dll", EntryPoint = "iReadBankNumExt", CharSet = CharSet.Ansi)]
+        //public static extern int iReadBankNumExt(int iReaderCtrl, int iType, StringBuilder pOutInfo);
 
-        [DllImport("TSSelfSendDev.dll", EntryPoint = "iGetATRExt", CharSet = CharSet.Ansi)]
-        public static extern int iGetATRExt(int iReaderCtrl, int iType, StringBuilder pOutInfo);
+        //[DllImport("TSSelfSendDev.dll", EntryPoint = "iGetATRExt", CharSet = CharSet.Ansi)]
+        //public static extern int iGetATRExt(int iReaderCtrl, int iType, StringBuilder pOutInfo);
 
-        [DllImport("TSSelfSendDev.dll", EntryPoint = "iCalSSCardCode", CharSet = CharSet.Ansi)]
-        public static extern int iCalSSCardCode(int iReaderCtrl, int iType, int iAuthType, string pCardId, string pUserInfo, StringBuilder pOutInfo);
+        //[DllImport("TSSelfSendDev.dll", EntryPoint = "iCalSSCardCode", CharSet = CharSet.Ansi)]
+        //public static extern int iCalSSCardCode(int iReaderCtrl, int iType, int iAuthType, string pCardId, string pUserInfo, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 读基本信息
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="iAuthType">该参数用于指定认证方式，定义如下：2-RK 通过PSAM方式计算认证码；3-RK 通过密服或加密机方式计算认证码。</param>
+        /// <param name="pCityCode"> 城市代码，不传值表示用卡片当前卡识别码前6位。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回文件数据，数据格式为：卡识别码、卡类别、规范版本、初始化机构编号、发卡日期、卡有效期、卡号、社会保障号码、姓名、性别、民族、出生地、出生日期、复位信息、复位信息（历史字节）、终端唯一识别码（20位序列号+12位终端序列号）。各数据项之间以“|”分割，且最后一个数据项以“|”结尾。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns>0表示成功；非0表示失败。</returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iReadCardBas_GZ", CharSet = CharSet.Ansi)]
+        public static extern int iReadCardBas_GZ(int iType, int iAuthType, string pCityCode, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 通用读卡
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="iAuthType">该参数用于指定认证方式，定义如下：2-RK 通过PSAM方式计算认证码；3-RK 通过密服或加密机方式计算认证码。</param>
+        /// <param name="pFileAddr">该参数用于指指定拟写入的文件和文件下的数据项。符合规范版本的卡结构适用。文件名由ADF的文件标识符和AEF的文件标识符组成，如SSSEEF05、DF01EF06。文件名及各数据项之间以“|”分隔, 且最后一个数据项以“|”结尾。数据项以记录标识符表示，若同一数据项由多条记录组成，则在数据项后加“:”再加记录号表示。不同文件之间以“$”分隔，且最后应以“$”结束。例如写入2.0卡就业状态，表示为：DF01EF07|29|$；写入国家/地区代码，表示为： DF01EF0A|37|$。当拟写入的文件为循环文件时，只需指定文件名，函数将新增记录；当拟写入的文件为透明文件时，只需指定文件名，函数将更新全部文件数据。</param>
+        /// <param name="pCityCode"> 城市代码，不传值表示用卡片当前卡识别码前6位。</param>
+        /// <param name="pPIN">当该参数为空时，程序内部调密码键盘获取密码；当参数不为空时，使用该值进行密码操作。此参数只在文件的读控制权限进行PIN认证时才有效。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回文件数据，数据格式为：卡识别码、卡类别、规范版本、初始化机构编号、发卡日期、卡有效期、卡号、社会保障号码、姓名、性别、民族、出生地、出生日期、复位信息、复位信息（历史字节）、终端唯一识别码（20位序列号+12位终端序列号）。各数据项之间以“|”分割，且最后一个数据项以“|”结尾。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns>0表示成功；非0表示失败。</returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iReadCard_GZ", CharSet = CharSet.Ansi)]
+        public static extern int iReadCard_GZ(int iType, int iAuthType, string pFileAddr, string pCityCode, string pPIN, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 通用写卡
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="iAuthType">该参数用于指定认证方式，定义如下：2-RK 通过PSAM方式计算认证码；3-RK 通过密服或加密机方式计算认证码。</param>
+        /// <param name="pFileAddr">该参数用于指指定拟写入的文件和文件下的数据项。符合规范版本的卡结构适用。文件名由ADF的文件标识符和AEF的文件标识符组成，如SSSEEF05、DF01EF06。文件名及各数据项之间以“|”分隔, 且最后一个数据项以“|”结尾。数据项以记录标识符表示，若同一数据项由多条记录组成，则在数据项后加“:”再加记录号表示。不同文件之间以“$”分隔，且最后应以“$”结束。例如写入2.0卡就业状态，表示为：DF01EF07|29|$；写入国家/地区代码，表示为： DF01EF0A|37|$。当拟写入的文件为循环文件时，只需指定文件名，函数将新增记录；当拟写入的文件为透明文件时，只需指定文件名，函数将更新全部文件数据。</param>
+        /// <param name="pWriteData">该参数用于指指定拟写入的文件和文件下的数据项。符合规范版本的卡结构适用。文件名由ADF的文件标识符和AEF的文件标识符组成，如SSSEEF05、DF01EF06。文件名及各数据项之间以“|”分隔, 且最后一个数据项以“|”结尾。数据项以记录标识符表示，若同一数据项由多条记录组成，则在数据项后加“:”再加记录号表示。不同文件之间以“$”分隔，且最后应以“$”结束。例如写入2.0卡就业状态，表示为：DF01EF07|29|$；写入国家/地区代码，表示为： DF01EF0A|37|$。当拟写入的文件为循环文件时，只需指定文件名，函数将新增记录；当拟写入的文件为透明文件时，只需指定文件名，函数将更新全部文件数据。</param>
+        /// <param name="pCityCode"> 城市代码，不传值表示用卡片当前卡识别码前6位。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回文件数据，数据格式为：卡识别码、卡类别、规范版本、初始化机构编号、发卡日期、卡有效期、卡号、社会保障号码、姓名、性别、民族、出生地、出生日期、复位信息、复位信息（历史字节）、终端唯一识别码（20位序列号+12位终端序列号）。各数据项之间以“|”分割，且最后一个数据项以“|”结尾。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns>0表示成功；非0表示失败。</returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iWriteCard_GZ", CharSet = CharSet.Ansi)]
+        public static extern int iWriteCard_GZ(int iType, int iAuthType, string pFileAddr, string pWriteData, string pCityCode, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 读上电复位信息
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="iOptType">1-获取完整复位信息；2-获取复位信息历史字节。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回上电复位信息。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns></returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iGetATR", CharSet = CharSet.Ansi)]
+        public static extern int iGetATR(int iType, int iOptType, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 获取完整卡识别码
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="iAuthType">该参数用于指定认证方式，定义如下：2-RK 通过PSAM方式计算认证码；3-RK 通过密服或加密机方式计算认证码。</param>
+        /// <param name="pCardId">24位的卡识别码数据。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回完整卡识别码。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns></returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iCalSSCardCode", CharSet = CharSet.Ansi)]
+        public static extern int iCalSSCardCode(int iType, int iAuthType, string pCardId, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 加密机/密服更换密钥
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="pCityCode"> 城市代码，不传值表示用卡片当前卡识别码前6位。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回上电复位信息。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns></returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iUpdateKey_GZ", CharSet = CharSet.Ansi)]
+        public static extern int iUpdateKey_GZ(int iType, string pCityCode, StringBuilder pOutInfo);
+
+        /// <summary>
+        /// 读银行卡号
+        /// </summary>
+        /// <param name="iType">表示执行本函数时操作卡的类型，定义如下：1-接触式操作卡；2-非接触式操作卡；3-自动寻卡，优先接触式操作；4-自动寻卡，优先非接触式操作。</param>
+        /// <param name="pOutInfo">函数执行成功时，返回银行卡号。当函数执行失败时，该输出参数为错误信息描述。</param>
+        /// <returns></returns>
+        [DllImport("GZSSCardReader.dll", EntryPoint = "iReadBankNum ", CharSet = CharSet.Ansi)]
+        public static extern int iReadBankNum(int iType, StringBuilder pOutInfo);
 
         #endregion
 
