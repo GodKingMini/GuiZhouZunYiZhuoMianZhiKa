@@ -1,0 +1,1154 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using YN_TCPinterface;
+using System.Diagnostics;
+
+
+namespace Sporcard
+{
+    public partial class FormMain : Form
+    {
+        public FormMain()
+        {
+            InitializeComponent();
+            InitFuncButton();
+            RefreshTree();
+        }
+
+
+        public Dictionary<string, int> sbyydic = new Dictionary<string,int>();
+
+        public void test()
+        {
+            Process proc = null;
+            try
+            {
+                string targetDir = string.Format(@"C:\Users\Administrator\Desktop\out\");//this is where testChange.bat lies
+                proc = new Process();
+                proc.StartInfo.WorkingDirectory = targetDir;
+                proc.StartInfo.FileName = "1.bat";
+                proc.StartInfo.Arguments = string.Format("10");//this is argument
+                //proc.StartInfo.CreateNoWindow = true;
+                //proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;//这里设置DOS窗口不显示，经实践可行
+                proc.Start();
+                proc.WaitForExit();
+                proc.Close();
+
+                proc = new Process();
+                proc.StartInfo.WorkingDirectory = targetDir;
+                proc.StartInfo.FileName = "2.bat";
+                proc.StartInfo.Arguments = string.Format("10");//this is argument
+                //proc.StartInfo.CreateNoWindow = true;
+                //proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;//这里设置DOS窗口不显示，经实践可行
+                proc.Start();
+                proc.WaitForExit();
+                proc.Close();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception Occurred :{0},{1}", ex.Message, ex.StackTrace.ToString());
+            }
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+           // test();
+            //int ret = TCPinterface.ConnectToServer();
+            //if (ret != 0)
+            //{
+            //    MessageBox.Show("连接远程服务失败！");
+            //    this.Close();
+            //}            
+        }
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            //TCPinterface.DisConnectServer();
+        }
+
+        #region ----------------控件事件----------------
+        private void InitFuncButton()
+        {
+            ucFuncButton1.AddButton(null, btnRefresh_Click);
+            ucFuncButton1.AddButton(Properties.Resources.个人查询, btnSearchPersonInfo_Click);
+            ucFuncButton1.AddButton(Properties.Resources.制作卡片, btnProductCard_Click);
+            ucFuncButton1.AddButton(Properties.Resources.回盘, btnReport_Click);
+            ucFuncButton1.AddButton(Properties.Resources.读卡, btnReadCard_Click);
+            
+            txtIDNo.GotFocus += txtIDNo_GotFocus;
+            txtIDNo.LostFocus += txtIDNo_LostFocus;
+            tbName.GotFocus += tbName_GotFocus;
+            tbName.LostFocus += tbName_LostFocus;
+            tbBankNo.GotFocus += tbReceipt_GotFocus;
+            tbBankNo.LostFocus += tbReceipt_LostFocus;
+            cbCertificateType.SelectedIndex = 0;
+            cbChangeType.SelectedIndex = 0;
+            comboBox_sbyy.SelectedIndex = 0;
+
+            //button_callbk.BackgroundImage = GetFile(Application.StartupPath + "\\Icon\\Login\\背景.png");
+            //sbyydic.Add("制卡成功", 0);
+            //sbyydic.Add("姓名中除了汉字和英文出现其他字符", 1);
+            //sbyydic.Add("姓名超过30个字符/汉字超过15个", 2);
+            //sbyydic.Add("社会保障号码位数不足18位", 3);
+            //sbyydic.Add("社会保障号码最后一位不为小写X", 4);
+            //sbyydic.Add("省个人识别号不足10位", 5);
+            //sbyydic.Add("照片分辨率不够", 6);
+            //sbyydic.Add("照片尺寸不够", 7);
+            //sbyydic.Add("照片不清晰", 8);
+            //sbyydic.Add("银行提供的金融数据存在问题", 9);
+            //sbyydic.Add("其他", 10);
+
+            groupBox_fee.Enabled = false ;
+        }
+
+        void tbReceipt_LostFocus(object sender, EventArgs e)
+        {
+            //if (GlobalClass.changeType == "16")
+            //    tbBankNo.Text = String.Equals(tbBankNo.Text.Trim(), "") ? "业务单据号后4位" : tbBankNo.Text;
+            //else
+            //    tbBankNo.Text = String.Equals(tbBankNo.Text.Trim(), "") ? "原银行卡号" : tbBankNo.Text;
+        }
+
+        void tbReceipt_GotFocus(object sender, EventArgs e)
+        {
+            if (GlobalClass.changeType == "16")
+                tbBankNo.Text = String.Equals(tbBankNo.Text.Trim(), "业务单据号后4位") ? "" : tbBankNo.Text;
+            else
+                tbBankNo.Text = String.Equals(tbBankNo.Text.Trim(), "原银行卡号") ? "" : tbBankNo.Text;
+        }
+        void tbName_LostFocus(object sender, EventArgs e)
+        {
+            tbName.Text = String.Equals(tbName.Text.Trim(), "") ? "姓名" : tbName.Text;
+        }
+        void tbName_GotFocus(object sender, EventArgs e)
+        {
+            tbName.Text = String.Equals(tbName.Text.Trim(), "姓名") ? "" : tbName.Text;
+        }
+        void txtIDNo_GotFocus(object sender, EventArgs e)
+        {
+            txtIDNo.Text = String.Equals(txtIDNo.Text.Trim(), "身份证号") ? "" : txtIDNo.Text;
+        }
+        void txtIDNo_LostFocus(object sender, EventArgs e)
+        {
+            txtIDNo.Text = String.Equals(txtIDNo.Text.Trim(), "") ? "身份证号" : txtIDNo.Text;
+        }     
+
+        private void cbCertificateType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (cbCertificateType.SelectedIndex)
+            {
+                case 0:
+                    GlobalClass.strCertificateType = "01";
+                    break;
+                case 1:
+                    GlobalClass.strCertificateType = "04";
+                    break;
+                case 2:
+                    GlobalClass.strCertificateType = "06";
+                    break;
+                case 3:
+                    GlobalClass.strCertificateType = "07";
+                    break;
+                case 4:
+                    GlobalClass.strCertificateType = "08";
+                    break;
+                default:
+                    GlobalClass.strCertificateType = "";
+                    break;
+            }
+            txtIDNo.Focus();
+        }
+
+        public PlatFormInterface pfi = PlatFormInterface.getInstance();
+
+        //public string changeType = "";
+        //public string strCertificateType = "";
+        public List<string> cardFeesList = new List<string>();
+        public List<string> searchInfoList = new List<string>();
+        public List<string> docCommitList = new List<string>();
+        //public string receipt = "";//业务单据号
+        //public string jylsxh = "";//交易流水序号
+        //public string busId = "";
+
+        private void cbChangeType_SelectedIndexChanged(object sender, EventArgs e)
+        {            
+            GlobalClass.bCheckFeeFlag = true;
+            tbBankNo.Text = "原银行卡号";
+            tbBankNo.Enabled = true;   
+            checkBox_fee.Enabled = true;
+            groupBox_fee.Enabled = true;
+            switch (cbChangeType.SelectedIndex)
+            {
+                case 0:
+                    GlobalClass.changeType = "15";
+                    tbBankNo.Text = "无需输入原银行卡号";
+                    tbBankNo.Enabled = false;
+                    break;
+                case 1:
+                    GlobalClass.changeType = "14";
+                    tbBankNo.Text = "无需输入原银行卡号";
+                    tbBankNo.Enabled = false;
+                    break;
+                case 2:
+                    GlobalClass.changeType = "13";
+                    tbBankNo.Text = "无需输入原银行卡号";
+                    tbBankNo.Enabled = false;
+                    break;
+                case 3:
+                    GlobalClass.changeType = "12";
+                    tbBankNo.Text = "无需输入原银行卡号";
+                    tbBankNo.Enabled = false;
+                    break;
+                case 4:                  
+                    GlobalClass.changeType = "11";
+                    tbBankNo.Text = "无需输入原银行卡号";
+                    tbBankNo.Enabled = false;
+                    //更换错卡不需要手动输入
+                    checkBox_fee.Checked = false;
+                    checkBox_fee.Enabled = false;
+                    groupBox_fee.Enabled = false;
+                    break;
+                case 5:
+                    GlobalClass.bCheckFeeFlag = false;
+                    GlobalClass.changeType = "16";
+                    tbBankNo.Text = "业务单据号后4位";
+                    //新发卡不需要手动输入
+                    checkBox_fee.Checked = false;
+                    checkBox_fee.Enabled = false;
+                    groupBox_fee.Enabled = false;
+                    break;      
+                default:
+                    GlobalClass.changeType = "";
+                    break;
+            }
+            //tbBankNo.Focus();
+        }
+
+        private void tvCardInit_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            AccessOperator Accor = new AccessOperator();
+            TreeNode Node = (TreeNode)tvCardInit.SelectedNode;
+
+            ucFuncButton1.SetButtonEnabled(3, false);
+            ucFuncButton1.SetButtonEnabled(4, false);
+            if (Node.Parent == null)
+            {
+                pcPrintView.Image = Properties.Resources.社保正面;
+            }
+            else
+            {
+                string strsql = "SELECT [jylsh],[BusId],[KSDM04],[YHKH05],[Status01],[XM27],[SHBZHM28],[XB30],[SGRSBH37],[FullDATA59],[BY60],[BY61],[SGRSBH37],[JYHKH58]  FROM ProductData WHERE [SHBZHM28]='" + Node.Name + "'";
+                DataTable dtread = Accor.ExecuteDataTable(strsql);
+                if (dtread.Rows.Count > 0)
+                {
+                    GlobalClass.status = dtread.Rows[0]["Status01"].ToString();
+                    GlobalClass.name = dtread.Rows[0]["XM27"].ToString();
+                    GlobalClass.idcard = dtread.Rows[0]["SHBZHM28"].ToString();
+                    GlobalClass.sex = dtread.Rows[0]["XB30"].ToString();
+                    GlobalClass.provNo = dtread.Rows[0]["SGRSBH37"].ToString();
+                    GlobalClass.fulldata = dtread.Rows[0]["FullDATA59"].ToString();
+                    GlobalClass.idcardType = dtread.Rows[0]["BY60"].ToString();
+                    GlobalClass.receipt = dtread.Rows[0]["BY61"].ToString();
+                    GlobalClass.ssbm = dtread.Rows[0]["SGRSBH37"].ToString();
+                    GlobalClass.oldyhkh = dtread.Rows[0]["JYHKH58"].ToString();
+
+                    GlobalClass.jylsh = dtread.Rows[0]["jylsh"].ToString();
+                    GlobalClass.busId = dtread.Rows[0]["BusId"].ToString();
+                    GlobalClass.newYHKH = dtread.Rows[0]["YHKH05"].ToString();
+                    GlobalClass.ksdm = dtread.Rows[0]["KSDM04"].ToString();
+
+                    if (GlobalClass.status.Equals("1") || GlobalClass.status.Equals("2") || GlobalClass.status.Equals("3"))
+                    {
+                        ucFuncButton1.SetButtonEnabled(3, true);
+                    }
+                    if (GlobalClass.status.Equals("3"))
+                    {
+                        ucFuncButton1.SetButtonEnabled(4, true);
+                    }
+
+                    PrintParameter pp = new PrintParameter();
+                    PrintFormatView pfv = new PrintFormatView();
+                    pfv.DrawFormat(pp);
+                    pcPrintView.Image = pfv.image;
+                }
+            }
+        }
+
+        public void btnRefresh_Click(object sender, EventArgs e)
+        {
+            RefreshTree();
+        }
+        //查找个人数据
+        public void btnSearchPersonInfo_Click(object sender, EventArgs e)
+        {
+            string sendData = "";
+            string olBankNo = "";
+            bool checkbox_type = checkBox_fee.Checked;
+        
+            //查询制卡数据
+            if (String.Equals(txtIDNo.Text.Trim(), "身份证号") || String.Equals(txtIDNo.Text.Trim(), "")  || String.Equals(tbName.Text.Trim(), "姓名") || String.Equals(tbName.Text.Trim(), ""))
+            {
+                MessageBox.Show("【身份证号】【姓名】不能为空！");
+                return;
+            }
+ 
+            if (5 == cbChangeType.SelectedIndex)
+            {
+                if (String.Equals(tbBankNo.Text.Trim(), "业务单据号后4位") || String.Equals(tbBankNo.Text.Trim(), ""))
+                {
+                    MessageBox.Show("【业务单据号后4位】不能为空！");
+                    return;
+                }
+                if (tbBankNo.Text.Trim().Length > 4)
+                {
+                    MessageBox.Show("输入数据过长，请输入【业务单据号后4位】");
+                    return;
+                }
+                olBankNo = tbBankNo.Text.Trim();
+            }
+            else
+            {
+                olBankNo = "";
+            }
+
+            if (checkbox_type == true)//如果勾选上了
+            {
+                //检查是否为空 
+                if (textBox_fsph.Text.Trim() == "")
+                {
+                    MessageBox.Show("非税票号不能为空，请输入！");
+                    return;
+                }
+                //检查是否为空 
+                if (textBox_fsjym.Text.Trim() == "")
+                {
+                    MessageBox.Show("非税校验码不能为空，请输入！");
+                    return;
+                }
+                ////检查是否为空 
+                //if (textBox_ywdjh.Text.Trim() == "")
+                //{
+                //    MessageBox.Show("业务单据号不能为空，请输入！");
+                //    return;
+                //}
+            }
+
+            int ret  = 0;
+            string recode = "";
+         
+            string carddata = "";
+            string photodata = "";//照片数据
+            string message = "";
+            string statusCode = "";
+
+            string receipt = "";//业务单据号
+            //string jylsxh = "";//交易流水序号
+
+            cardFeesList.Clear();
+            searchInfoList.Clear();
+            docCommitList.Clear();
+
+            AccessOperator Accor = new AccessOperator();
+            MsgPutOut("查询数据", "正在查询数据，请耐心等待...");
+                      
+            if (GlobalClass.bCheckFeeFlag == true)//查询是否已经缴费
+            { 
+                cardFeesList = pfi.checkCardFees(txtIDNo.Text.Trim(), tbName.Text.Trim(), GlobalClass.userId, GlobalClass.distCode, GlobalClass.strCertificateType, GlobalClass.changeType, olBankNo/*tbBankNo.Text.Trim()*/, GlobalClass.yhbm, out statusCode, out message, out sendData);
+                if (!statusCode.Equals("200"))
+                {
+                    MsgPutOut("查询数据", string.Format("银行代收卡费查询失败 姓名：{0}，身份证：{1}， message：{2}:", tbName.Text.Trim(), txtIDNo.Text.Trim(), message));
+                    return;
+                }
+
+                receipt = cardFeesList[3];
+                GlobalClass.receipt = receipt;
+                GlobalClass.jylsh = cardFeesList[4];         
+            }
+            else  //新发卡不需要查询
+            {
+               
+                if (tbBankNo.Text.Trim() == "业务单据号后4位" || tbBankNo.Text.Trim() == "")
+                {
+                    MsgPutOut("查询数据", string.Format("请输入业务单据号后4位 "));
+                    return;
+                }
+                else if (tbBankNo.Text.Trim().Length > 4)
+                {
+                    MsgPutOut("查询数据", string.Format("数据过长，请输入业务单据号后4位 "));
+                    return;
+                }
+
+                receipt = tbBankNo.Text.Trim();
+                GlobalClass.receipt = receipt;
+                GlobalClass.jylsh = "";
+            }
+            //}
+            //else//在柜台已经缴费
+            //{
+            //    GlobalClass.sFSJKM = textBox_fsjym.Text.Trim();
+            //    GlobalClass.sFSPH = textBox_fsph.Text.Trim();
+            //    GlobalClass.receipt = textBox_ywdjh.Text.Trim();
+            //}            
+
+
+            if (GlobalClass.oldMethodFlag)
+            {
+                recode = TCPinterface.SearchPersonInfo(tbName.Text.Trim(), GlobalClass.strCertificateType, txtIDNo.Text.Trim(), GlobalClass.changeType, olBankNo/*tbBankNo.Text.Trim()*/, GlobalClass.receipt, out carddata, out photodata);
+                if (!recode.Equals("0000"))
+                {
+                    MsgPutOut("查询数据", string.Format("查询个人信息失败 姓名：{0}，身份证：{1}", tbName.Text.Trim(), txtIDNo.Text.Trim()));
+                    return;
+                }
+                GlobalClass.carddata = carddata;
+            }
+            else
+            {
+                string ALLYwdjh = "";
+                searchInfoList = pfi.searchInfo(txtIDNo.Text.Trim(),//	是	身份证
+                                        tbName.Text.Trim(),//是	姓名
+                                        GlobalClass.userId ,//	是	操作人id
+                                        GlobalClass.distCode,//是	区划编码
+                                        GlobalClass.strCertificateType,//是	证件类型
+                                        GlobalClass.changeType,//是	卡变更类型
+                                        GlobalClass.receipt,//	是	业务单据号
+                                        GlobalClass.yhbm,//	是	银行网点编码
+                                        GlobalClass.jylsh,//	是	交易序号
+                                        olBankNo,//银行卡号
+                                        GlobalClass.ssbm,//省识别码
+                                        out ALLYwdjh,
+                                        out statusCode, out message, out sendData);
+
+                if (!statusCode.Equals("200"))
+                {                    
+                    MsgPutOut("查询数据", string.Format("查询个人信息失败 姓名：{0}，身份证：{1}， message：{2}:", tbName.Text.Trim(), txtIDNo.Text.Trim(), message));
+                    return;
+                }
+            
+                //去除照片数据
+                for (int i = 0; i < (searchInfoList.Count - 1);i++ )
+                {
+                    if (i + 1 == searchInfoList.Count - 1)
+                        carddata += searchInfoList[i];
+                    else
+                        carddata += searchInfoList[i] + "|";
+                }
+                GlobalClass.ssbm = searchInfoList[20];
+                GlobalClass.carddata = carddata;
+                photodata = searchInfoList[53];
+                GlobalClass.oldyhkh = searchInfoList[50];
+                GlobalClass.receipt = ALLYwdjh;//兼容 "新发卡" 模式的 需要的完整业务单据号
+
+                docCommitList = pfi.doCommit(txtIDNo.Text.Trim(),//是	身份证号
+                                        GlobalClass.yhbm,//是	网点编码
+                                        GlobalClass.orgId,//是	网点id
+                                        GlobalClass.userId ,/*pfi.operatorNo*///是	操作员id
+                                        GlobalClass.loginName,
+                out statusCode, out message, out sendData);
+                if (!statusCode.Equals("200"))
+                {
+                    MsgPutOut("查询数据", string.Format("存储个人信息失败 姓名：{0}，身份证：{1}， message：{2}:", tbName.Text.Trim(), txtIDNo.Text.Trim(), message));
+                    return;
+                }
+                GlobalClass.busId = docCommitList[0];
+            }
+
+            ret = SaveData(searchInfoList[20], GlobalClass.carddata, GlobalClass.strCertificateType, GlobalClass.receipt, GlobalClass.busId, GlobalClass.jylsh);
+            if (ret < 0)
+            {
+                MsgPutOut("查询数据", "保存个人数据失败");
+                return;
+            }
+            SavePhoto(photodata, searchInfoList[20] + "_" + searchInfoList[19]);
+            RefreshTree();
+            MsgPutOut("查询数据", string.Format("查询个人信息成功 姓名：{0}，身份证：{1}", tbName.Text.Trim(), txtIDNo.Text.Trim()));
+ 
+        }
+
+        public void btnProductCard_Click(object sender, EventArgs e)
+        {
+            ucFlowChart1.Clear();
+            this.Refresh();
+            ProductCard(GlobalClass.name, GlobalClass.idcardType, GlobalClass.idcard, GlobalClass.receipt);
+        }
+
+        public void btnReport_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                AccessOperator Accor = new AccessOperator();
+                TreeNode Node = (TreeNode)tvCardInit.SelectedNode;
+                string strsql = "SELECT [jylsh], [BusId], [Status01],[CGBZ02],[SBYY03],[KSDM04],[YHKH05],[KSBM06],[ATR07],[XM27],[SHBZHM28],[SGRSBH37],[JYHKH58] FROM ProductData WHERE [SHBZHM28]='" + Node.Name + "' AND [Status01]='3'";
+                
+                DataTable dtread = Accor.ExecuteDataTable(strsql);
+                //string strResult = dtread.Rows[0]["CGBZ02"].ToString() + "|"
+                //                    +dtread.Rows[0]["SBYY03"].ToString() + "|"
+                //                    +dtread.Rows[0]["KSDM04"].ToString() + "|"
+                //                    +dtread.Rows[0]["YHKH05"].ToString() + "|"
+                //                    +dtread.Rows[0]["KSBM06"].ToString() + "|"
+                //                    +dtread.Rows[0]["ATR07"];
+                tvCardInit.Enabled = false;
+                if (dtread.Rows.Count > 0)
+                {
+             
+                    GlobalClass.ssbm = dtread.Rows[0]["SGRSBH37"].ToString();
+                    GlobalClass.oldyhkh = dtread.Rows[0]["JYHKH58"].ToString();
+
+                    GlobalClass.jylsh = dtread.Rows[0]["jylsh"].ToString();
+                    GlobalClass.busId = dtread.Rows[0]["BusId"].ToString();
+                    GlobalClass.newYHKH = dtread.Rows[0]["YHKH05"].ToString();
+                    GlobalClass.ksdm = dtread.Rows[0]["KSDM04"].ToString();
+                    //ReportResult(dtread.Rows[0]["XM27"].ToString(),GlobalClass.idcardType, dtread.Rows[0]["SHBZHM28"].ToString(),GlobalClass.receipt, strResult);
+                    ReportResult(dtread.Rows[0]["XM27"].ToString(), GlobalClass.idcardType, dtread.Rows[0]["SHBZHM28"].ToString(), GlobalClass.receipt,
+                        //dtread.Rows[0]["CGBZ02"].ToString(), dtread.Rows[0]["SBYY03"].ToString(),
+                        GlobalClass.zkErrorCode, GlobalClass.backErrMsgType, dtread.Rows[0]["KSDM04"].ToString(), dtread.Rows[0]["YHKH05"].ToString(),
+                        dtread.Rows[0]["KSBM06"].ToString(), dtread.Rows[0]["ATR07"].ToString(), dtread.Rows[0]["SGRSBH37"].ToString(), dtread.Rows[0]["JYHKH58"].ToString(),
+                        dtread.Rows[0]["BusId"].ToString(), dtread.Rows[0]["jylsh"].ToString());
+                }
+              
+                RefreshTree();
+                tvCardInit.Enabled = true;
+            }
+            catch (System.Exception ex)
+            {
+            	
+            }
+        }
+
+        public void btnReadCard_Click(object sender, EventArgs e)
+        {
+            //StringBuilder sb = new StringBuilder();
+            //string outstring = "";
+            //TCPinterface.AccessJMJ(GlobalClass.name, strCertificateType, GlobalClass.idcard, GlobalClass.receipt, "F6X0001904081709010001FF9009001389C73A497EAA86FD84D4000124", out outstring);
+            //TS_DLL.iTest(TS_DLL.SendMsgToJMJ,sb);
+
+            string reportStr = "";
+            string ks = "";
+            int ret = ReadCardInfo(out reportStr,out ks);
+            GlobalClass.ksdm = ks;
+            if (ret == -1)
+            {
+                MsgPutOut("读社保卡", "打开读写器端口失败");
+            }
+            else if (ret == -2)
+            {
+                MsgPutOut("读社保卡", "读银行卡号失败");
+            }
+            else if (ret == -3)
+            {
+                MsgPutOut("读社保卡", "读卡识别码失败");
+            }
+            else 
+            {
+                MsgPutOut("读社保卡","读卡结果:" + reportStr);
+            }
+        }
+
+        #endregion
+
+        #region ----------------事件实现----------------
+        public string printName = "Zebra ZXP Series 3C USB Card Printer";
+
+        private void RefreshTree()
+        {
+            AccessOperator Accor = new AccessOperator();
+            tvCardInit.Nodes.Clear();
+            string strsql = "SELECT [Status01],[XM27],[SHBZHM28] FROM ProductData WHERE [Status01]='1' OR [Status01]='2' OR [Status01]='3'";
+            DataTable dtread = Accor.ExecuteDataTable(strsql);
+            TreeNode Root = tvCardInit.Nodes.Add(string.Format("个人补换卡[数量:{0}]", dtread.Rows.Count));
+            TreeNode Node = null;
+            foreach (DataRow dr in dtread.Rows)
+            {
+                Node = Root.Nodes.Add(dr["SHBZHM28"].ToString(), dr["SHBZHM28"] + "_" + dr["XM27"]);
+                if (dr["Status01"].ToString().Equals("2"))
+                {
+                    Node.ForeColor = System.Drawing.Color.Red;
+                }
+                else if (dr["Status01"].ToString().Equals("3"))
+                {
+                    Node.ForeColor = System.Drawing.Color.Blue;
+                }
+            }
+            tvCardInit.ExpandAll();
+            tvCardInit.SelectedNode = Root;
+        }
+
+        private void ProductCard(string name, string idcardType, string idNo, string receipt)
+        {
+            string ICdata = "";
+            string reportStr = "";
+            string strsql = "";
+            
+            ICdata = TCPinterface.WriteICBaseData(name, idcardType, idNo, receipt) + "#" + GlobalClass.fulldata;
+
+            AccessOperator Accor = new AccessOperator();
+            PrintParameter pp = new PrintParameter();
+
+            tvCardInit.Enabled = false;
+            int ret = ProductExecute(pp, ICdata, out reportStr);
+            if (ret != 0)
+            {
+                MsgPutOut("制作卡片", "制卡失败。错误:" + ret);
+                //strsql = "UPDATE ProductData SET [Status01]='2' WHERE [SHBZHM28]='" + idNo + "'";
+                strsql = "UPDATE ProductData SET [Status01]='2',[SBYY03]='" + ret + "'  WHERE [SHBZHM28]='" + idNo + "'";
+                int count = Accor.ExecuteNonQuery(strsql);
+                if (count <= 0)
+                {
+                    MsgPutOut("制作卡片", "更新本地数据库失败");
+                }
+            }
+            else
+            {
+                MsgPutOut("制作卡片", "制卡成功！");
+                string[] strrep = reportStr.Split('|');
+                //strsql = "UPDATE ProductData SET [Status01]='3',[CGBZ02]='1',[SBYY03]='',[KSDM04]='"
+                //    + strrep[0] + "',[YHKH05]='" + strrep[1] + "',[KSBM06]='" + strrep[2] + "',[ATR07]='" + strrep[3] + "' WHERE [SHBZHM28]='" + idNo + "'";
+                strsql = "UPDATE ProductData SET [Status01]='3',[CGBZ02]='1',[SBYY03]='10',[KSDM04]='" + GlobalClass.ksdm 
+                    + "',[YHKH05]='" + strrep[1] + "',[KSBM06]='" + strrep[2] + "',[ATR07]='" + strrep[3] + "' WHERE [SHBZHM28]='" + idNo + "'";
+               
+                int count = Accor.ExecuteNonQuery(strsql);
+                if (count <= 0)
+                {
+                    MsgPutOut("制作卡片", "更新本地数据库失败");
+                }
+
+                //ReportResult(name,idcardType, idNo,receipt, reportStr);
+                //进行手动回盘
+                //btnReport_Click(null, null);
+                
+                //ReportResult(name, idcardType, idNo, receipt,
+                //  dtread.Rows[0]["CGBZ02"].ToString(), dtread.Rows[0]["SBYY03"].ToString(), dtread.Rows[0]["KSDM04"].ToString(), dtread.Rows[0]["YHKH05"].ToString(), dtread.Rows[0]["KSBM06"].ToString(), dtread.Rows[0]["ATR07"].ToString(), dtread.Rows[0]["SGRSBH37"].ToString(), dtread.Rows[0]["JYHKH58"].ToString(),
+                //  dtread.Rows[0]["BusId"].ToString(), dtread.Rows[0]["jylsh"].ToString());
+
+
+            }
+            RefreshTree();
+            tvCardInit.Enabled = true;
+        }
+
+        public int ProductExecute(PrintParameter printPra, string ICdata, out string outCardData)
+        {
+            int ret = 0;
+            outCardData = "";
+            PrintProduct ppro = new PrintProduct();
+            //打开打印机
+            int printHandle = PrintProduct.OpenPrinter(printName);
+            if (printHandle <= 0)
+            {
+                MsgPutOut("制作卡片", "打开打印机失败");
+                return -101;
+            }
+            //进卡
+            int steps = 100;
+            ret = PrintProduct.FeedCard(printHandle, 0, steps);
+            if (ret != 1)
+            {
+                ucFlowChart1.SetStepStatus(1, false);
+                MsgPutOut("制作卡片", "进卡失败");
+                return -102;
+            }
+            ucFlowChart1.SetStepStatus(1, true);
+            this.Refresh();
+
+            //写IC
+            MsgPutOut("制作卡片", "正在写卡，请耐心等待...");
+            ret = WriteIC(ICdata);
+            if (ret != 0)
+            {
+                ucFlowChart1.SetStepStatus(2, false);
+                PrintProduct.Eject(printHandle);
+                MsgPutOut("制作卡片", "写卡失败，错误代码:" + ret);
+                return -103;
+            }
+
+            //读卡
+            string ks = "";
+            ret = ReadCardInfo(out outCardData,out ks);
+           // MsgPutOut("制作卡片", "ks:" + ks);
+            if (ret != 0)
+            {
+                MsgPutOut("制作卡片", "读卡失败，错误代码:" + ret);
+                return -104;
+            }
+            GlobalClass.ksdm = ks;//
+
+            ucFlowChart1.SetStepStatus(2, true);
+            this.Refresh();
+
+            //排版照片
+            if (!ppro.DrawPhoto(printPra))
+            {
+                MsgPutOut("制作卡片", "排版照片失败");
+                return -105;
+            }
+
+            //排版个人信息
+            if (!ppro.DrawPersonInfo(printPra))
+            {
+                MsgPutOut("制作卡片", "排版个人信息失败");
+                return -106;
+            }
+
+            //开始打印
+            MsgPutOut("制作卡片", "正在打印，请耐心等待...");
+            ret = PrintProduct.StartPrint(printHandle, 2, 0);
+            if (ret != 1)
+            {
+                ucFlowChart1.SetStepStatus(3, false);
+                MsgPutOut("制作卡片", string.Format("打印失败,ret:{0}", ret));
+                return -107;
+            }
+            MsgPutOut("制作卡片", "打印成功");
+            ucFlowChart1.SetStepStatus(3, true);            
+            this.Refresh();
+            //成功
+            //关闭打印机
+            PrintProduct.ClosePrinter(printHandle);   
+            return 0;
+        }
+
+        //private void ReportResult(string name,string idcardType, string cardID,string receipt, string result)
+        //{
+
+        //    string statusCode = "";
+        //    string message = "";
+        //    string recode = "";
+        //    string outstring;
+        //    string strsql = "";
+        //    AccessOperator Accor = new AccessOperator();
+        //    //01身份证
+        //    MsgPutOut("数据回盘", "正在回盘数据，请耐心等待...");
+
+        //    recode = TCPinterface.ReportResult(name, idcardType, cardID, receipt, result, out outstring);  
+
+        //    if (recode.Equals("0000"))
+        //    {
+        //        strsql = "UPDATE ProductData SET [Status01]='4' WHERE [SHBZHM28]='" + cardID + "'";
+        //        ucFlowChart1.SetStepStatus(4, true);
+        //        MsgPutOut("数据回盘", "回盘成功");
+        //    }
+        //    else
+        //    {
+        //        strsql = "UPDATE ProductData SET [Status01]='3' WHERE [SHBZHM28]='" + cardID + "'";
+        //        ucFlowChart1.SetStepStatus(4, false);
+        //        MsgPutOut("数据回盘", "回盘失败:" + outstring);
+        //    }
+        //    int count = Accor.ExecuteNonQuery(strsql);
+        //    if (count <=0)
+        //    {
+        //        MsgPutOut("数据回盘", "更新本地数据库失败");
+        //    }
+        //}
+
+
+        private void ReportResult(string name, string idcardType, string cardID, string receipt,
+            string errCode, string errMsg, string ksdm, string newYhkh, string ksbm, string atr, string ssbm, string oldYhkh, string busID, string jylsh)
+        {
+
+            string sendData = "";
+            string statusCode = "";
+            string message = "";
+            string recode = "";
+            string outstring = "" ;
+            string strsql = "";
+            string compareStr = "";
+            AccessOperator Accor = new AccessOperator();
+
+            GlobalClass.ssbm = ssbm;
+            //01身份证
+            MsgPutOut("数据回盘", "正在回盘数据，请耐心等待...");
+            if (GlobalClass.oldMethodFlag)//测试
+            {
+                //string strResult = dtread.Rows[0]["CGBZ02"].ToString() + "|" + dtread.Rows[0]["SBYY03"].ToString() + "|"
+                //                    +dtread.Rows[0]["KSDM04"].ToString() + "|"  +dtread.Rows[0]["YHKH05"].ToString() + "|"
+                //                    +dtread.Rows[0]["KSBM06"].ToString() + "|"  +dtread.Rows[0]["ATR07"];
+
+                string result = errCode + "|" + errMsg + "|" + ksbm + "|" + oldYhkh + "|" + ksbm + "|" + atr;
+                recode = TCPinterface.ReportResult(name, idcardType, cardID, receipt, result, out outstring);
+                compareStr = "0000";
+            }
+            else
+            {                
+                recode = pfi.callDataBack(
+                     errCode,//是	制卡结果代码 10  或者  11
+                     errMsg,//否	制卡失败原因(制卡失败时必填)人为看到的
+                     atr,//是	卡复位码
+                     ksbm,//是	卡识别码
+                     busID,//GlobalClass.busId,//是	制卡业务表id
+                     oldYhkh,//是	银行卡号
+                     cardID,//是	身份证
+                     name,//是	姓名
+                     idcardType,//是	证件类别
+                     GlobalClass.userId,/*pfi.operatorNo*///是	操作人员id
+                     jylsh,//是	交易流水号
+                     GlobalClass.distCode,/*pfi.adCode*///是   行政区划编码
+                     receipt,//是	业务单据号                    
+                     ssbm, ksdm, newYhkh,
+                     "","","",  
+                    out statusCode, out message,out sendData);
+
+                compareStr = "200";
+            }
+
+            if (statusCode.Equals(compareStr.Trim()))
+            {
+                strsql = "UPDATE ProductData SET [Status01]='4' WHERE [SHBZHM28]='" + cardID + "'";
+                ucFlowChart1.SetStepStatus(4, true);
+                MsgPutOut("数据回盘", message);
+            }
+            else
+            {
+                strsql = "UPDATE ProductData SET [Status01]='3' WHERE [SHBZHM28]='" + cardID + "'";
+                ucFlowChart1.SetStepStatus(4, false);
+                MsgPutOut("数据回盘", message);
+            }
+            int count = Accor.ExecuteNonQuery(strsql);
+            if (count <= 0)
+            {
+                MsgPutOut("数据回盘", "更新本地数据库失败");
+            }
+        }
+
+        #endregion
+
+
+        protected override void DefWndProc(ref System.Windows.Forms.Message m)
+        {
+            int messageType = m.Msg;
+            switch (m.Msg)
+            {
+                case GlobalClass.WM_MY_MESSAGE:
+                    MsgPutOut("发送加密机数据", GlobalClass.sendJMJData);
+                    break;
+                default:
+                    base.DefWndProc(ref m);//一定要调用基类函数，以便系统处理其它消息。
+                    break;
+            }
+        }
+        #region ----------------通用功能----------------
+        private void MsgPutOut(string type,string msg)
+        {
+            tbShow.Text += string.Format("[{0}]->:{1}\r\n",type,msg);
+            tbShow.Select(tbShow.TextLength,0);
+            tbShow.ScrollToCaret();
+            this.Refresh();
+        }   
+
+
+
+        private void SavePhoto(string strbase, string photoname)
+        {
+            //无相片字符串bmpBase64则推出
+            if (strbase.Equals(""))
+            {
+                return;
+            }
+
+            try
+            {
+                MemoryStream stream = new MemoryStream(Convert.FromBase64String(strbase));
+                Bitmap img = new Bitmap(stream);
+                string dir = Application.StartupPath + @"\Photo";
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                string photoFullname = dir + "\\" + photoname + ".jpg";
+                img.Save(photoFullname);
+            }
+            catch (Exception e)
+            {                
+                throw e;
+            }
+        }
+
+        private int SaveData(string idcard, string carddata, string idcardType, string receipt)
+        {
+            //Status01,CGBZ02,SBYY03,KSDM04,YHKH05,KSBM06,ATR07,
+            //ShJPCH08,SJPCH09,CSMC10,
+            //CJJGZKPCH11,CJJGMC12,XZQHDM13,XZQHMC14,DWBH15,DWMC16,YXBJ17,KDLB18,GFBB19,
+            //CSHJGBM20,FKRQ21,KYXQ22,KH23,SGDBBH24,ZKZL25,RYCCSLDBM26,XM27,SHBZHM28,YHBM29,XB30,
+            //MZ31,CSRQ32,XMKZ33,CSD34,BHKBZ35,CSKSBM36,SGRSBH37,ZZMM38,CZDZ39,HKXZ40,
+            //HKSZD41,XL42,GRSF43,ZJLX44,ZJHM45,ZJYXQ46,ZJZZRQ47,LXDH48,GJ49,ZY50,
+            //HYLB51,JHRXM52,JHRXB53,JHRZJLX54,JHRZJHM55,JHRDZ56,JHRLXDH57,JYHKH58,YL1,YL2
+            AccessOperator Accor = new AccessOperator();
+            //如果本地数据库已经有此人的数据，则不插入
+            string sql = "SELECT [SHBZHM28] FROM ProductData WHERE [SHBZHM28]='" + idcard + "'";
+            DataTable dtread = Accor.ExecuteDataTable(sql);
+            if (dtread.Rows.Count > 0)
+                return 0;
+            string tableFields = "Status01,CGBZ02,SBYY03,KSDM04,YHKH05,KSBM06,ATR07,ShJPCH08,SJPCH09,CSMC10,CJJGZKPCH11,CJJGMC12,XZQHDM13,XZQHMC14,DWBH15,DWMC16,YXBJ17,KDLB18,GFBB19,CSHJGBM20,FKRQ21,KYXQ22,KH23,SGDBBH24,ZKZL25,RYCCSLDBM26,XM27,SHBZHM28,YHBM29,XB30,MZ31,CSRQ32,XMKZ33,CSD34,BHKBZ35,CSKSBM36,SGRSBH37,ZZMM38,CZDZ39,HKXZ40,HKSZD41,XL42,GRSF43,ZJLX44,ZJHM45,ZJYXQ46,ZJZZRQ47,LXDH48,GJ49,ZY50,HYLB51,JHRXM52,JHRXB53,JHRZJLX54,JHRZJHM55,JHRDZ56,JHRLXDH57,JYHKH58,YL1,YL2,FullDATA59,BY60,BY61,BY62";
+            string[] tabledata = tableFields.Split(',');
+            string[] data = carddata.Split('|');
+            string insertvalue = "'1','','','','','','','" + carddata.Replace("|", "','") + "','";
+            insertvalue += carddata + "','"+idcardType+"','"+receipt+"',''";
+           
+            string strsql = "insert into ProductData (" + tableFields + ") values (" + insertvalue + ")";
+            int count = Accor.ExecuteNonQuery(strsql);
+            int ret = count > 0 ? 0 : -1; //插入成功或失败
+            return ret;
+        }
+
+        private int SaveData(string idcard, string carddata, string idcardType, string receipt,string busID,string jylsh)
+        {
+            //BusId
+            //Status01,CGBZ02,SBYY03,KSDM04,YHKH05,KSBM06,ATR07,
+            //ShJPCH08,SJPCH09,CSMC10,
+            //CJJGZKPCH11,CJJGMC12,XZQHDM13,XZQHMC14,DWBH15,DWMC16,YXBJ17,KDLB18,GFBB19,
+            //CSHJGBM20,FKRQ21,KYXQ22,KH23,SGDBBH24,ZKZL25,RYCCSLDBM26,XM27,SHBZHM28,YHBM29,XB30,
+            //MZ31,CSRQ32,XMKZ33,CSD34,BHKBZ35,CSKSBM36,SGRSBH37,ZZMM38,CZDZ39,HKXZ40,
+            //HKSZD41,XL42,GRSF43,ZJLX44,ZJHM45,ZJYXQ46,ZJZZRQ47,LXDH48,GJ49,ZY50,
+            //HYLB51,JHRXM52,JHRXB53,JHRZJLX54,JHRZJHM55,JHRDZ56,JHRLXDH57,JYHKH58,YL1,YL2
+            AccessOperator Accor = new AccessOperator();
+            //如果本地数据库已经有此人的数据，则不插入
+            string sql = "SELECT [SHBZHM28] FROM ProductData WHERE [SHBZHM28]='" + idcard + "'";
+            DataTable dtread = Accor.ExecuteDataTable(sql);
+            if (dtread.Rows.Count > 0)
+                return 0;
+            string tableFields = "jylsh,BusId,Status01,CGBZ02,SBYY03,KSDM04,YHKH05,KSBM06,ATR07,ShJPCH08,SJPCH09,CSMC10,CJJGZKPCH11,CJJGMC12,XZQHDM13,XZQHMC14,DWBH15,DWMC16,YXBJ17,KDLB18,GFBB19,CSHJGBM20,FKRQ21,KYXQ22,KH23,SGDBBH24,ZKZL25,RYCCSLDBM26,XM27,SHBZHM28,YHBM29,XB30,MZ31,CSRQ32,XMKZ33,CSD34,BHKBZ35,CSKSBM36,SGRSBH37,ZZMM38,CZDZ39,HKXZ40,HKSZD41,XL42,GRSF43,ZJLX44,ZJHM45,ZJYXQ46,ZJZZRQ47,LXDH48,GJ49,ZY50,HYLB51,JHRXM52,JHRXB53,JHRZJLX54,JHRZJHM55,JHRDZ56,JHRLXDH57,JYHKH58,YL1,YL2,FullDATA59,BY60,BY61,BY62";
+            //string[] tabledata = tableFields.Split(',');
+            //string[] data = carddata.Split('|');
+            string insertvalue ="'" + jylsh + "','" + busID + "','1','','','','','','','" + carddata.Replace("|", "','") + "','";
+            insertvalue += carddata + "','" + idcardType + "','" + receipt + "',''";
+
+            string strsql = "insert into ProductData (" + tableFields + ") values (" + insertvalue + ")";
+            int count = Accor.ExecuteNonQuery(strsql);
+            int ret = count > 0 ? 0 : -1; //插入成功或失败
+            return ret;
+        }
+
+
+        private int WriteIC(string ICdata)
+        {
+            int ret = 0;
+            //打开读写器
+            if (PrintProduct.ICCPowerOn("USB1") != 0)
+                return -11;
+
+            byte[] ucpATR = new byte[256];
+            int nATRLen = 0;
+            PrintProduct.ResetCard(ref ucpATR[0], ref nATRLen);
+
+            //string stratr = System.Text.Encoding.Default.GetString(ucpATR, 0, nATRLen);
+            //东信和平
+            if (ucpATR[9] == 0x86 && ucpATR[10] == 0x60)
+            {
+                GlobalClass.ksdm = "104";
+                MsgPutOut("制作卡片", "东信和平卡片");        
+                string[] data = ICdata.Split('#');
+             
+                //ret = EP_DLL.PersoCard(PrintProduct.Transmit, PrintProduct.ResetCard, "", 0, ICdata, ICdata.Length);
+                ret = EP_DLL.PersoCard(PrintProduct.Transmit, PrintProduct.ResetCard, EP_DLL.SendMsgToJMJ, "", 0, data[1], data[1].Length);
+                if (ret != 0)
+                    return ret;
+               
+            }
+            //金邦达
+            else if ((ucpATR[9] == 0x86 && ucpATR[10] == 0x65) || (ucpATR[10] == 0x86 && ucpATR[11] == 0x65))
+            {
+                GlobalClass.ksdm = "101";
+                MsgPutOut("制作卡片", "金邦达卡片");
+                string[] data = ICdata.Split('#');
+
+               ret = PAC_DLL.PersoCard(PrintProduct.Transmit, PrintProduct.ResetCard,PAC_DLL.SendMsgToJMJ, "", 0, data[1], data[1].Length);
+
+                if (ret != 0)
+                    return ret;
+            }
+            else if ((ucpATR[9] == 0x86 && ucpATR[10] == 0x49))
+            {
+                GlobalClass.ksdm = "102";
+                MsgPutOut("制作卡片", "德生卡片");
+                string[] data = ICdata.Split('#');
+                ret = TS_DLL.iWriteCard(data[1],TS_DLL.SendMsgToJMJ);
+                if (ret != 0)
+                    return ret;
+            }
+
+
+            //关闭读写器
+            PrintProduct.ICCPowerOff();
+            return 0;
+        }
+
+        public int ReadCardInfo(out string reportStr,out string ksdm)
+        {
+            int ret = 0;
+            ksdm = "";
+            StringBuilder atr = new StringBuilder();
+            StringBuilder bankno = new StringBuilder();
+
+            StringBuilder szCardCertID = new StringBuilder();
+            StringBuilder szCardType = new StringBuilder();
+            StringBuilder szCardVersion = new StringBuilder();
+            StringBuilder szOrgDeptID = new StringBuilder();
+            StringBuilder szDispCardDate = new StringBuilder();
+            StringBuilder szExpireDate = new StringBuilder();
+            StringBuilder szCardID = new StringBuilder();
+
+            reportStr = "";
+            //卡商代码|银行卡号|卡识别码|ATR值
+            int hCom = LSCard.iDOpenPort(1);
+            if (hCom <= 0)
+            {
+                return -1;
+            }
+            ret = LSCard.iDInitReader(hCom, 0, atr);
+            ret = LSCard.iGetBankNO(hCom, bankno);
+            //if (ret != 0)
+            //{
+            //    return -2;
+            //}
+            ret = LSCard.iDInitReader(hCom, 0, atr);
+            ret = LSCard.iRMFCardDeptInfo(hCom, szCardCertID, szCardType, szCardVersion, szOrgDeptID, szDispCardDate, szExpireDate, szCardID);
+            if (ret != 0)
+            {
+                return -3;
+            }
+            GlobalClass.newYHKH = bankno.ToString();
+
+            reportStr = atr.ToString().Substring(18, 4) + "|" + bankno + "|" + szCardCertID + "|" + atr;
+
+            if (atr[18] == '8' && atr[19] == '6' && atr[20] == '6' && atr[21] == '0')
+            {
+                ksdm = "104";           
+            }
+            if ( ( (atr[18] == '8' && atr[19] == '6' && atr[20] == '6' && atr[21] == '5') ) ||   ((atr[20] == '8' && atr[21] == '6' && atr[22] == '6' && atr[23] == '5')) )
+            {
+                ksdm = "101";
+            }  
+            if (atr[18] == '8' && atr[19] == '6' && atr[20] == '4' && atr[21] == '9')
+            {
+                ksdm = "102";
+            }
+            //byte[] ucpATR = new byte[256];
+            //int nATRLen = 0;
+
+            //PrintProduct.ResetCard(ref ucpATR[0], ref nATRLen);
+            //if (ucpATR[9] == 0x86 && ucpATR[10] == 0x60)
+            //{
+            //    ksdm = "104";               
+            //}
+            ////金邦达
+            //else if ((ucpATR[9] == 0x86 && ucpATR[10] == 0x65) || (ucpATR[10] == 0x86 && ucpATR[11] == 0x65))
+            //{
+            //    ksdm = "101";
+            //}
+            //else if ((ucpATR[9] == 0x86 && ucpATR[10] == 0x49))
+            //{
+            //    ksdm = "102";
+            //}
+            return 0;
+        }
+        #endregion
+
+
+        private void tableTitle_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            ////获取TabControl主控件的工作区域
+            //Rectangle rec = tableTitle.ClientRectangle;
+            ////获取背景图片，我的背景图片在项目资源文件中。
+            //Image backImage = Image.FromFile(Application.StartupPath + "\\Icon\\Login\\背景.png");
+            
+            ////新建一个StringFormat对象，用于对标签文字的布局设置
+            //StringFormat StrFormat = new StringFormat();
+            //StrFormat.LineAlignment = StringAlignment.Center;// 设置文字垂直方向居中
+            //StrFormat.Alignment = StringAlignment.Center;// 设置文字水平方向居中     
+
+            //// 标签背景填充颜色，也可以是图片
+            //SolidBrush bru = new SolidBrush(Color.FromArgb(72, 181, 250));
+            //SolidBrush bruFont = new SolidBrush(Color.FromArgb(0, 0, 0));// 标签字体颜色
+
+            //Font font = new System.Drawing.Font("宋体", 9F);//设置标签字体样式
+
+
+
+            ////绘制主控件的背景
+            //e.Graphics.DrawImage(backImage, 0, 0, tableTitle.Width, tableTitle.Height);
+
+            ////绘制标签样式
+            //for (int i = 0; i < tableTitle.TabPages.Count; i++)
+            //{
+
+            //    //获取标签头的工作区域
+
+            //    Rectangle recChild = tableTitle.GetTabRect(i);
+
+            //    //绘制标签头背景颜色
+
+            //    e.Graphics.FillRectangle(bru, recChild);
+
+            //    //绘制标签头的文字
+
+            //    e.Graphics.DrawString(tableTitle.TabPages[i].Text, font, bruFont, recChild, StrFormat);
+
+            //}
+        }
+
+        //private void handReport_Click(object sender, EventArgs e)
+        //{
+        //    btnReport_Click(sender, e);
+        //}
+
+        public MemoryStream ReadFile(string path)
+        {
+            if (!File.Exists(path))
+                return null;
+
+            using (FileStream file = new FileStream(path, FileMode.Open))
+            {
+                byte[] b = new byte[file.Length];
+                file.Read(b, 0, b.Length);
+                file.Close();
+                file.Dispose();
+
+                MemoryStream stream = new MemoryStream(b);
+                return stream;
+            }
+        }
+
+        public Image GetFile(string path)
+        {
+            MemoryStream stream = ReadFile(path);
+            return stream == null ? null : Image.FromStream(stream);
+        }
+
+        private void comboBox_sbyy_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox_sbyy.SelectedIndex == 0)
+            {
+                GlobalClass.backErrMsgType = "0";//制卡失败原因代码
+                GlobalClass.zkErrorCode = "10";//制卡代码
+            }
+            else
+            {
+                GlobalClass.backErrMsgType = comboBox_sbyy.SelectedIndex.ToString();//制卡失败原因代码
+                GlobalClass.zkErrorCode = "11";//制卡代码
+            }
+
+        }
+
+        private void checkBox_fee_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBox_fee.Checked == true)
+            {
+                groupBox_fee.Enabled = true;
+            }
+            else
+            {
+                groupBox_fee.Enabled = false;
+            }
+        }
+
+        
+
+    }
+}
