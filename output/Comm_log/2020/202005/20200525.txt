@@ -1,6 +1,0 @@
-2020-05-25 13:26:15,228  RefreshTreeWithBatch Start
-2020-05-25 13:26:15,263  ExecuteDataTable start
-2020-05-25 13:28:57,943  ExecuteDataTable end
-2020-05-25 13:29:15,242  RefreshTreeWithBatch Start
-2020-05-25 13:29:15,251  ExecuteDataTable start
-2020-05-25 13:29:16,295  ExecuteDataTable end
